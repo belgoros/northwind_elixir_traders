@@ -5,8 +5,7 @@ defmodule NorthwindElixirTraders.Repo.Migrations.EmployeesUniqueIndex do
     create(
       unique_index(
         :employees,
-        [:last_name, :first_name, :birth_date],
-        name: :unique_employee_index
+        [:last_name, :first_name, :birth_date]
       )
     )
   end
