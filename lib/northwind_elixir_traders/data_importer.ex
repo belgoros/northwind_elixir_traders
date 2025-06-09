@@ -80,7 +80,26 @@ defmodule NorthwindElixirTraders.DataImporter do
   end
 
   def query_actually(table) do
-    "SELECT * FROM #{table}" |> IO.inspect()
+    sql = "SELECT * FROM #{table}"
+    {s, r} = nt_query(sql)
+
+    case {s, r} do
+      {:ok, r} ->
+        cols = treat_columns(r.columns, table)
+
+        must_treat_dates? =
+          [:birth_date, :date]
+          |> Enum.map(&Enum.member?(cols, &1))
+          # cumulative OR
+          |> Enum.reduce(false, fn x, acc -> acc or x end)
+
+        res = r.rows |> Enum.map(&Enum.zip(cols, &1)) |> Enum.map(&Map.new/1)
+        res = if must_treat_dates?, do: Enum.map(res, &treat_dates/1), else: res
+        {:ok, res}
+
+      {:error, r} ->
+        {:error, r}
+    end
   end
 
   def treat_columns(cols, table) when is_list(cols) and is_bitstring(table) do
