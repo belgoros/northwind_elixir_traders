@@ -82,4 +82,28 @@ defmodule NorthwindElixirTraders.DataImporter do
   def query_actually(table) do
     "SELECT * FROM #{table}" |> IO.inspect()
   end
+
+  def treat_columns(cols, table) when is_list(cols) and is_bitstring(table) do
+    singular = singularize(table)
+
+    Stream.map(
+      cols,
+      fn c ->
+        if String.contains?(c, singular), do: String.replace(c, singular, ""), else: c
+      end
+    )
+    |> Stream.map(&Macro.underscore/1)
+    |> Stream.map(&String.to_atom/1)
+    |> Enum.to_list()
+  end
+
+  def treat_dates(m) when is_map(m) do
+    mk = Map.keys(m)
+
+    case {:birth_date in mk, :date in mk} do
+      {true, _} -> %{m | birth_date: Date.from_iso8601!(m.birth_date)}
+      {_, true} -> %{m | date: (m.date <> "T12:00:00Z") |> DateTime.from_iso8601() |> elem(1)}
+      {false, false} -> m
+    end
+  end
 end
