@@ -16,7 +16,7 @@ defmodule NorthwindElixirTraders.Product do
   end
 
   def changeset(data, params \\ %{}) do
-    permitted = [:name, :unit, :price, :category_id, :supplier_id]
+    permitted = [:id, :name, :unit, :price, :category_id, :supplier_id]
     required = permitted
 
     data
@@ -26,5 +26,6 @@ defmodule NorthwindElixirTraders.Product do
     |> Validations.validate_foreign_key_id(Category, :category_id)
     |> Validations.validate_foreign_key_id(Supplier, :supplier_id)
     |> unique_constraint([:name])
+    |> unique_constraint([:id])
   end
 end
