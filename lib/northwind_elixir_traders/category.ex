@@ -10,17 +10,19 @@ defmodule NorthwindElixirTraders.Category do
     field(:name, :string)
     field(:description, :string)
     has_many(:products, Product)
+    timestamps(type: :utc_datetime)
   end
 
-  def changeset(data, params \\ %{}) do
-    permitted = [:name, :description]
+  def changeset(category, params \\ %{}) do
+    permitted = [:id, :name, :description]
     required = [:name]
 
-    data
+    category
     |> cast(params, permitted)
     |> validate_required(required)
     |> validate_length(:name, max: @name_mxlen)
     |> validate_length(:description, max: @desc_mxlen)
     |> unique_constraint(:name)
+    |> unique_constraint([:id])
   end
 end
