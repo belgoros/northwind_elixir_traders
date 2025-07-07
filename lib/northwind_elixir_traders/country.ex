@@ -16,6 +16,20 @@ defmodule NorthwindElixirTraders.Country do
     timestamps(type: :utc_datetime)
   end
 
+  def get_dial(value) when is_bitstring(value) do
+    dialcodes =
+      [:name, :alpha3] |> Enum.map(&get_dial_by(&1, value)) |> Enum.filter(&(not is_nil(&1)))
+
+    case dialcodes do
+      # found by both
+      [a, a] -> a
+      # found by one
+      [a] -> a
+      # ambiguous
+      [_a, _b] -> nil
+    end
+  end
+
   def get_dial_by(field, value) when is_atom(field) and is_bitstring(value) do
     criterion = Keyword.new([{field, value}])
     Repo.one(from(c in __MODULE__, where: ^criterion, select: c.dial))
