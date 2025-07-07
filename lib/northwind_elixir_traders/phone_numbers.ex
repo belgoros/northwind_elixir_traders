@@ -5,4 +5,15 @@ defmodule NorthwindElixirTraders.PhoneNumbers do
   def is_intl?(phone) when is_bitstring(phone), do: Regex.match?(@intl_regex, phone)
 
   def is_nanp?(phone) when is_bitstring(phone), do: Regex.match?(@nanp_regex, phone)
+
+  def make_readable(phone) when is_bitstring(phone) do
+    phone
+    |> then(&Regex.replace(~r/[^\d\s]/, &1, " "))
+    |> then(&Regex.replace(~r/\s+/, &1, " "))
+    |> String.trim_leading()
+  end
+
+  def compose_intl(dialcode, readable) when is_bitstring(dialcode) and is_bitstring(readable) do
+    to_string(["+", dialcode, " ", readable])
+  end
 end
