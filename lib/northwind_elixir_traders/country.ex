@@ -1,6 +1,7 @@
 defmodule NorthwindElixirTraders.Country do
   use Ecto.Schema
-  import Ecto.Changeset
+  import Ecto.{Changeset, Query}
+  alias NorthwindElixirTraders.Repo
   # alias NorthwindElixirTraders.{Supplier,Customer} # leave this in for later
 
   @name_mxlen 50
@@ -13,6 +14,11 @@ defmodule NorthwindElixirTraders.Country do
     # has_many(:suppliers, Supplier, on_replace: :nilify) # for later
     # has_many(:customers, Customer, on_replace: :nilify) # for later
     timestamps(type: :utc_datetime)
+  end
+
+  def get_dial_by(field, value) when is_atom(field) and is_bitstring(value) do
+    criterion = Keyword.new([{field, value}])
+    Repo.one(from(c in __MODULE__, where: ^criterion, select: c.dial))
   end
 
   def changeset(category, params \\ %{}) do
