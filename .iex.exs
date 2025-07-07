@@ -5,6 +5,7 @@ alias NorthwindElixirTraders.Category
 alias NorthwindElixirTraders.Employee
 alias NorthwindElixirTraders.Supplier
 alias NorthwindElixirTraders.Product
+alias NorthwindElixirTraders.Country
 alias NorthwindElixirTraders.DataImporter
 
 import Ecto.Query
