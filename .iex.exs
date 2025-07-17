@@ -4,6 +4,7 @@ alias NorthwindElixirTraders.Repo
 alias NorthwindElixirTraders.Category
 alias NorthwindElixirTraders.Employee
 alias NorthwindElixirTraders.Supplier
+alias NorthwindElixirTraders.Shipper
 alias NorthwindElixirTraders.Product
 alias NorthwindElixirTraders.Country
 alias NorthwindElixirTraders.DataImporter
