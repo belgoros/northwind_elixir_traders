@@ -1,9 +1,9 @@
 defmodule NorthwindElixirTraders.Shipper do
   use Ecto.Schema
   import Ecto.Changeset
+  alias NorthwindElixirTraders.PhoneNumbers
 
   @name_mxlen 50
-  @phone_mxlen 15
 
   schema "categories" do
     field(:name, :string)
@@ -19,7 +19,7 @@ defmodule NorthwindElixirTraders.Shipper do
     |> cast(params, permitted)
     |> validate_required(required)
     |> validate_length(:name, max: @name_mxlen)
-    |> validate_length(:phone, max: @phone_mxlen)
+    |> PhoneNumbers.validate_phone(:phone)
     |> unique_constraint(:name)
     |> unique_constraint([:id])
   end
