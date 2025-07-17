@@ -5,6 +5,14 @@ defmodule NorthwindElixirTraders.DataImporter do
   @name :nt
   @database "NorthwindTraders-original.db"
 
+  def count_net(m) when is_atom(m), do: Repo.aggregate(m, :count)
+
+  def count_nt(table) when is_bitstring(table) do
+    with {:ok, result} <- nt_query("SELECT * FROM #{table}") do
+      Map.get(result, :num_rows)
+    end
+  end
+
   def start do
     if is_nil(Process.whereis(@name)), do: Repo.start_link(name: @name, database: @database)
   end
