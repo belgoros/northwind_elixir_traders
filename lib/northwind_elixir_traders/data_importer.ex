@@ -1,9 +1,30 @@
 defmodule NorthwindElixirTraders.DataImporter do
   require Logger
-  alias NorthwindElixirTraders.Repo
+  alias NorthwindElixirTraders.{Repo, Country}
 
   @name :nt
   @database "NorthwindTraders-original.db"
+
+  def count_all_both() do
+    get_tables_to_import()
+    |> Stream.map(fn t -> {t, table_to_internals(t) |> Map.get(:module_name)} end)
+    |> Stream.map(fn {t, m} -> {t, count_nt(t), count_net(m)} end)
+    |> Enum.to_list()
+  end
+
+  def check_all_imported_ok() do
+    count_all_both()
+    |> Enum.reduce(0, fn {_t, a, b}, acc -> acc + a - b end)
+    |> then(&if(&1 == 0, do: :ok, else: :warning))
+  end
+
+  def count_net(m) when is_atom(m), do: Repo.aggregate(m, :count)
+
+  def count_nt(table) when is_bitstring(table) do
+    with {:ok, result} <- nt_query("SELECT * FROM #{table}") do
+      Map.get(result, :num_rows)
+    end
+  end
 
   def start do
     if is_nil(Process.whereis(@name)), do: Repo.start_link(name: @name, database: @database)
@@ -173,7 +194,17 @@ defmodule NorthwindElixirTraders.DataImporter do
   end
 
   def import_all_modeled() do
-    prioritize() |> Enum.map(&model_to_table/1) |> Enum.map(&insert_all_from/1)
+    loglevel = Logger.level()
+    Logger.configure(level: :none)
+    results = Country.import()
+
+    results = [
+      results | prioritize() |> Enum.map(&model_to_table/1) |> Enum.map(&insert_all_from/1)
+    ]
+
+    check = check_all_imported_ok()
+    Logger.configure(level: loglevel)
+    {check, results}
   end
 
   def get_modules_of_modeled_tables() do
@@ -210,5 +241,17 @@ defmodule NorthwindElixirTraders.DataImporter do
     |> Enum.map(fn {k, v} -> {k, List.flatten([Map.values(v) | Map.keys(v)])} end)
     |> Enum.sort_by(fn {_, dependencies} -> length(dependencies) end)
     |> Enum.map(fn {k, _v} -> k end)
+  end
+
+  def teardown() do
+    prioritize()
+    |> Enum.reverse()
+    |> Enum.map(&{&1, Repo.delete_all(&1) |> elem(0)})
+    |> Map.new()
+  end
+
+  def reset do
+    teardown()
+    import_all_modeled()
   end
 end
