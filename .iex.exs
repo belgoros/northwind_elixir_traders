@@ -9,6 +9,7 @@ alias NorthwindElixirTraders.Customer
 alias NorthwindElixirTraders.Product
 alias NorthwindElixirTraders.Country
 alias NorthwindElixirTraders.Order
+alias NorthwindElixirTraders.OrderDetail
 alias NorthwindElixirTraders.DataImporter
 
 import Ecto.Query
