@@ -5,17 +5,17 @@ defmodule NorthwindElixirTraders.Shipper do
 
   @name_mxlen 50
 
-  schema "categories" do
+  schema "shippers" do
     field(:name, :string)
     field(:phone, :string)
     timestamps(type: :utc_datetime)
   end
 
-  def changeset(category, params \\ %{}) do
+  def changeset(shipper, params \\ %{}) do
     permitted = [:id, :name, :phone]
     required = permitted |> List.delete(:id)
 
-    category
+    shipper
     |> cast(params, permitted)
     |> validate_required(required)
     |> validate_length(:name, max: @name_mxlen)
