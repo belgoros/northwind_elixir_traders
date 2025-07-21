@@ -5,6 +5,23 @@ defmodule NorthwindElixirTraders.DataImporter do
   @name :nt
   @database "NorthwindTraders-original.db"
 
+  def visit(n, edges, sorted, unvisited) do
+    if n not in unvisited do
+      {sorted, unvisited}
+    else
+      # for each node m ... etc.
+      m = Map.get(edges, n)
+      # mark n as visited
+      unvisited = List.delete(unvisited, n)
+      # visit m only when it exists
+      {sorted, unvisited} =
+        if is_nil(m), do: {sorted, unvisited}, else: visit(m, edges, sorted, unvisited)
+
+      # add n to head of sorted
+      {[n | sorted], unvisited}
+    end
+  end
+
   def fk_to_module(foreign_key) when is_atom(foreign_key) do
     app = NorthwindElixirTraders.get_application() |> Map.get(:string)
 
