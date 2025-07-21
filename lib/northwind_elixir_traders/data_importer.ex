@@ -5,6 +5,41 @@ defmodule NorthwindElixirTraders.DataImporter do
   @name :nt
   @database "NorthwindTraders-original.db"
 
+  def make_erd_graph() do
+    make_dependency_map()
+    |> Enum.filter(&(!Enum.empty?(elem(&1, 1))))
+    |> Enum.map(fn {k, vv} -> Enum.map(vv, fn v -> {v, k} end) end)
+    |> List.flatten()
+    |> Enum.map(fn {k, v} -> {fk_to_module(k), v} end)
+    |> Map.new()
+  end
+
+  def visit(n, edges, sorted, unvisited) do
+    if n not in unvisited do
+      {sorted, unvisited}
+    else
+      # for each node m ... etc.
+      m = Map.get(edges, n)
+      # mark n as visited
+      unvisited = List.delete(unvisited, n)
+      # visit m only when it exists
+      {sorted, unvisited} =
+        if is_nil(m), do: {sorted, unvisited}, else: visit(m, edges, sorted, unvisited)
+
+      # add n to head of sorted
+      {[n | sorted], unvisited}
+    end
+  end
+
+  def fk_to_module(foreign_key) when is_atom(foreign_key) do
+    app = NorthwindElixirTraders.get_application() |> Map.get(:string)
+
+    module_name =
+      foreign_key |> Atom.to_string() |> String.replace("_id", "") |> String.capitalize()
+
+    Module.concat(app, module_name)
+  end
+
   def count_all_both() do
     get_tables_to_import()
     |> Stream.map(fn t -> {t, table_to_internals(t) |> Map.get(:module_name)} end)
@@ -215,11 +250,23 @@ defmodule NorthwindElixirTraders.DataImporter do
   end
 
   def prioritize() do
-    make_dependency_map()
-    |> gather()
-    |> Enum.map(fn {k, v} -> {k, List.flatten([Map.values(v) | Map.keys(v)])} end)
-    |> Enum.sort_by(fn {_, dependencies} -> length(dependencies) end)
-    |> Enum.map(fn {k, _v} -> k end)
+    edges = make_erd_graph()
+    unvisited = (Map.keys(edges) ++ Map.values(edges)) |> Enum.uniq() |> Enum.shuffle()
+    sorted = []
+
+    results =
+      unvisited
+      |> Enum.reduce_while({sorted, unvisited}, fn n, acc ->
+        if Enum.empty?(unvisited) do
+          {:halt, acc}
+        else
+          {sorted, unvisited} = acc
+          {:cont, visit(n, edges, sorted, unvisited)}
+        end
+      end)
+
+    # return the sorted list
+    elem(results, 0)
   end
 
   def teardown() do
