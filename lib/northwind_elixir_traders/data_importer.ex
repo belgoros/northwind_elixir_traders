@@ -5,6 +5,15 @@ defmodule NorthwindElixirTraders.DataImporter do
   @name :nt
   @database "NorthwindTraders-original.db"
 
+  def fk_to_module(foreign_key) when is_atom(foreign_key) do
+    app = NorthwindElixirTraders.get_application() |> Map.get(:string)
+
+    module_name =
+      foreign_key |> Atom.to_string() |> String.replace("_id", "") |> String.capitalize()
+
+    Module.concat(app, module_name)
+  end
+
   def count_all_both() do
     get_tables_to_import()
     |> Stream.map(fn t -> {t, table_to_internals(t) |> Map.get(:module_name)} end)
