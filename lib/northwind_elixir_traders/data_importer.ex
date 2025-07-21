@@ -5,6 +5,15 @@ defmodule NorthwindElixirTraders.DataImporter do
   @name :nt
   @database "NorthwindTraders-original.db"
 
+  def make_erd_graph() do
+    make_dependency_map()
+    |> Enum.filter(&(!Enum.empty?(elem(&1, 1))))
+    |> Enum.map(fn {k, vv} -> Enum.map(vv, fn v -> {v, k} end) end)
+    |> List.flatten()
+    |> Enum.map(fn {k, v} -> {fk_to_module(k), v} end)
+    |> Map.new()
+  end
+
   def visit(n, edges, sorted, unvisited) do
     if n not in unvisited do
       {sorted, unvisited}
