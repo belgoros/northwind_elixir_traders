@@ -1,7 +1,7 @@
 defmodule NorthwindElixirTraders.Customer do
   use Ecto.Schema
   import Ecto.Changeset
-  # alias NorthwindElixirTraders.Order
+  alias NorthwindElixirTraders.Order
 
   @name_mxlen 50
 
@@ -12,7 +12,7 @@ defmodule NorthwindElixirTraders.Customer do
     field(:city, :string)
     field(:postal_code, :string)
     field(:country, :string)
-    # has_many(:orders, Order)
+    has_many(:orders, Order)
 
     timestamps(type: :utc_datetime)
   end
