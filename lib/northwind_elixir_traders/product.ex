@@ -18,7 +18,7 @@ defmodule NorthwindElixirTraders.Product do
   end
 
   def import_changeset(data, params \\ %{}) do
-    permitted = [:id, :name, :unit, :price, :category_id, :supplier_id, :price_cents]
+    permitted = [:id, :name, :unit, :price, :category_id, :supplier_id]
     required = permitted
 
     data
