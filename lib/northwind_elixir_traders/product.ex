@@ -9,6 +9,7 @@ defmodule NorthwindElixirTraders.Product do
     field(:name, :string)
     field(:unit, :string)
     field(:price, :float)
+    field(:price_cents, :integer)
     belongs_to(:category, Category)
     belongs_to(:supplier, Supplier)
     has_many(:order_details, OrderDetail)
@@ -18,7 +19,7 @@ defmodule NorthwindElixirTraders.Product do
   end
 
   def changeset(data, params \\ %{}) do
-    permitted = [:id, :name, :unit, :price, :category_id, :supplier_id]
+    permitted = [:id, :name, :unit, :price, :category_id, :supplier_id, :price_cents]
     required = permitted
 
     data
