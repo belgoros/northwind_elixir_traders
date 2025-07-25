@@ -27,6 +27,18 @@ defmodule NorthwindElixirTraders.Insights do
     )
   end
 
+  def list_customers_by_order_revenue do
+    from(c in Customer,
+      join: o in assoc(c, :orders),
+      join: od in assoc(o, :order_details),
+      join: p in assoc(od, :product),
+      select: %{id: c.id, name: c.name, revenue: sum(od.quantity * p.price)},
+      group_by: c.id,
+      order_by: [desc: sum(od.quantity * p.price)]
+    )
+    |> Repo.all()
+  end
+
   def query_order_details_by_order(order_id) do
     OrderDetail
     |> join(:inner, [od], p in Product, on: od.product_id == p.id)
