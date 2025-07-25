@@ -1,8 +1,19 @@
 defmodule NorthwindElixirTraders.Insights do
   import Ecto.Query
+  alias NorthwindElixirTraders.Customer
   alias NorthwindElixirTraders.{Repo, Product, Order, OrderDetail}
   @max_concurrency 2
   @timeout 5
+
+  def list_top_n_customers_by_order_count(n \\ 5) when is_integer(n) do
+    Customer
+    |> join(:inner, [c], o in assoc(c, :orders))
+    |> group_by([c, o], c.id)
+    |> select([c, o], %{id: c.id, name: c.name, num_orders: count(o.id)})
+    |> order_by([c, o], desc: count(o.id))
+    |> limit(^n)
+    |> Repo.all()
+  end
 
   def query_order_details_by_order(order_id) do
     OrderDetail
