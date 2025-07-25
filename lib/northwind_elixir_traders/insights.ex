@@ -26,6 +26,8 @@ defmodule NorthwindElixirTraders.Insights do
     order_id |> query_order_total_value() |> Repo.one()
   end
 
+  def dollarize(cents) when is_number(cents), do: cents / 100
+
   def calculate_total_value_of_orders(orders, opts \\ [max_concurrency: @max_concurrency])
       when is_list(orders) and is_list(opts) do
     mc =
@@ -39,6 +41,6 @@ defmodule NorthwindElixirTraders.Insights do
       max_concurrency: mc
     )
     |> Enum.to_list()
-    |> Enum.reduce(0.0, fn {_status, value}, acc -> acc + value end)
+    |> Enum.sum_by(&elem(&1, 1))
   end
 end
