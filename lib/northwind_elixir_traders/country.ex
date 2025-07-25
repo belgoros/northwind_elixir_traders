@@ -44,7 +44,7 @@ defmodule NorthwindElixirTraders.Country do
     [:name, :dial, :alpha3]
     |> Enum.zip(Tuple.to_list(country))
     |> Map.new()
-    |> then(&changeset(struct(__MODULE__), &1))
+    |> then(&import_changeset(struct(__MODULE__), &1))
     |> Repo.insert()
   end
 
@@ -82,7 +82,7 @@ defmodule NorthwindElixirTraders.Country do
     |> Enum.map(fn {country, dial, iso} -> {country, String.replace(dial, "-", ""), iso} end)
   end
 
-  def changeset(category, params \\ %{}) do
+  def import_changeset(category, params \\ %{}) do
     permitted = [:name, :dial, :alpha3]
     required = [:name]
 

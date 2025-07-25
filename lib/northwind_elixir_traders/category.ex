@@ -13,7 +13,7 @@ defmodule NorthwindElixirTraders.Category do
     timestamps(type: :utc_datetime)
   end
 
-  def changeset(category, params \\ %{}) do
+  def import_changeset(category, params \\ %{}) do
     permitted = [:id, :name, :description]
     required = [:name]
 

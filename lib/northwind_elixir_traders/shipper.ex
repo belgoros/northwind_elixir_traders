@@ -11,7 +11,7 @@ defmodule NorthwindElixirTraders.Shipper do
     timestamps(type: :utc_datetime)
   end
 
-  def changeset(shipper, params \\ %{}) do
+  def import_changeset(shipper, params \\ %{}) do
     permitted = [:id, :name, :phone]
     required = permitted |> List.delete(:id)
 

@@ -15,7 +15,7 @@ defmodule NorthwindElixirTraders.Employee do
     timestamps(type: :utc_datetime)
   end
 
-  def changeset(data, params \\ %{}) do
+  def import_changeset(data, params \\ %{}) do
     permitted = [:id, :last_name, :first_name, :birth_date, :photo, :notes]
     required = [:last_name, :first_name, :birth_date]
 

@@ -197,7 +197,7 @@ defmodule NorthwindElixirTraders.DataImporter do
   def insert_all_from(table) do
     %{module_name: modname, empty_struct: estruct} = table_to_internals(table)
     {:ok, data} = select_all(table)
-    changeset = fn m -> apply(modname, :changeset, [estruct, m]) end
+    changeset = fn m -> apply(modname, :import_changeset, [estruct, m]) end
     data |> Enum.map(&changeset.(&1)) |> Enum.map(&Repo.insert/1)
   end
 
