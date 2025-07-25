@@ -15,6 +15,18 @@ defmodule NorthwindElixirTraders.Insights do
     |> Repo.all()
   end
 
+  def query_orders_by_customer(%Customer{id: customer_id}),
+    do: query_orders_by_customer(customer_id)
+
+  def query_orders_by_customer(customer_id) when not is_map(customer_id) do
+    from(o in Order,
+      join: c in Customer,
+      on: o.customer_id == c.id,
+      where: o.customer_id == ^customer_id,
+      select: o
+    )
+  end
+
   def query_order_details_by_order(order_id) do
     OrderDetail
     |> join(:inner, [od], p in Product, on: od.product_id == p.id)
