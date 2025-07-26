@@ -14,6 +14,7 @@ defmodule NorthwindElixirTraders.Supplier do
     field(:country, :string)
     field(:phone, :string)
     has_many(:products, Product)
+    has_many(:orders, through: [:products, :order_details, :order])
 
     timestamps(type: :utc_datetime)
   end
