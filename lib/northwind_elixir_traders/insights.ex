@@ -79,6 +79,11 @@ defmodule NorthwindElixirTraders.Insights do
     |> Enum.map(&elem(&1, 1))
   end
 
+  def calculate_chunk_area({{x1, y1}, {x2, y2}}) do
+    {w, h} = {x2 - x1, y2 - y1}
+    w * h * 0.5 + y1 * w
+  end
+
   def list_customers_by_order_revenue do
     from(s in subquery(query_customers_by_order_revenue()),
       order_by: [desc: s.revenue]
