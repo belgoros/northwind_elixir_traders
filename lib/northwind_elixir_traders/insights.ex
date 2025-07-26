@@ -5,6 +5,15 @@ defmodule NorthwindElixirTraders.Insights do
   @max_concurrency 2
   @timeout 5
 
+  def normalize_xy(xyl) when is_list(xyl) do
+    {mxn, mxr} =
+      xyl |> Enum.reduce({0, 0}, fn {n, r}, {mxn, mxr} -> {max(n, mxn), max(r, mxr)} end)
+
+    xyl |> Enum.map(fn {n, r} -> {n / mxn, r / mxr} end)
+  end
+
+  def extract_task_results(r) when is_list(r), do: Enum.map(r, &elem(&1, 1))
+
   def list_top_n_customers_by_order_count(n \\ 5) when is_integer(n) do
     Customer
     |> join(:inner, [c], o in assoc(c, :orders))
@@ -68,15 +77,11 @@ defmodule NorthwindElixirTraders.Insights do
   end
 
   def generate_customer_share_of_revenues_xy do
-    nc = count_customers_orders(:with)
-    total = Order |> Repo.all() |> calculate_total_value_of_orders()
-
-    Task.async_stream(
-      0..nc,
-      &{&1 / nc, calculate_top_n_customers_by_order_value(&1) / total}
-    )
+    0..count_customers_orders(:with)
+    |> Task.async_stream(&{&1, calculate_top_n_customers_by_order_value(&1)})
     |> Enum.to_list()
-    |> Enum.map(&elem(&1, 1))
+    |> extract_task_results()
+    |> normalize_xy()
   end
 
   def calculate_chunk_area({{x1, y1}, {x2, y2}}) do
