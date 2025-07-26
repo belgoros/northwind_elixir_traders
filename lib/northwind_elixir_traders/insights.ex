@@ -5,6 +5,21 @@ defmodule NorthwindElixirTraders.Insights do
   @max_concurrency 2
   @timeout 5
 
+  def count_entity_orders(m, condition \\ :with)
+      when m in [Customer, Employee, Shipper] and condition in [:with, :without] do
+    count_with =
+      from(x in m)
+      |> join(:inner, [x], o in assoc(x, :orders))
+      |> select([x], x.id)
+      |> distinct(true)
+      |> Repo.aggregate(:count)
+
+    case condition do
+      :with -> count_with
+      :without -> Repo.aggregate(m, :count) - count_with
+    end
+  end
+
   def normalize_xy(xyl) when is_list(xyl) do
     {mxn, mxr} =
       xyl |> Enum.reduce({0, 0}, fn {n, r}, {mxn, mxr} -> {max(n, mxn), max(r, mxr)} end)
@@ -62,19 +77,7 @@ defmodule NorthwindElixirTraders.Insights do
     |> Repo.one()
   end
 
-  def count_customers_orders(condition \\ :with) when condition in [:with, :without] do
-    count_with =
-      from(c in Customer)
-      |> join(:inner, [c], o in assoc(c, :orders))
-      |> select([c], c.id)
-      |> distinct(true)
-      |> Repo.aggregate(:count)
-
-    case condition do
-      :with -> count_with
-      :without -> Repo.aggregate(Customer, :count) - count_with
-    end
-  end
+  def count_customers_orders(condition \\ :with), do: count_entity_orders(Customer, condition)
 
   def generate_customer_share_of_revenues_xy do
     0..count_customers_orders(:with)
