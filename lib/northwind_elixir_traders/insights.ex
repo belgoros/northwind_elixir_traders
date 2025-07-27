@@ -123,6 +123,14 @@ defmodule NorthwindElixirTraders.Insights do
     )
   end
 
+  def query_entity_by_order_revenue(m) when m == Product do
+    from(x in m,
+      join: od in assoc(x, :order_details),
+      group_by: x.id,
+      select: %{id: x.id, name: x.name, revenue: sum(od.quantity * x.price)}
+    )
+  end
+
   def query_entity_by_order_revenue(m) when m in @m_tables do
     from(x in m,
       join: o in assoc(x, :orders),
