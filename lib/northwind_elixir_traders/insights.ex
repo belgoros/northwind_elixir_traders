@@ -92,12 +92,28 @@ defmodule NorthwindElixirTraders.Insights do
 
   def count_customers_orders(condition \\ :with), do: count_entity_orders(Customer, condition)
 
-  def generate_customer_share_of_revenues_xy do
-    0..count_customers_orders(:with)
-    |> Task.async_stream(&{&1, calculate_top_n_customers_by_order_value(&1)})
+  def generate_customer_share_of_revenues_xy(m) when m in @m_tables do
+    0..count_entity_orders(m, :with)
+    |> Task.async_stream(&{&1, calculate_top_n_entity_by_order_value(m, &1)})
     |> Enum.to_list()
     |> extract_task_results()
     |> normalize_xy()
+  end
+
+  def calculate_top_n_entity_by_order_value(m, n \\ 5)
+      when m in @m_tables and is_integer(n) and n >= 0 do
+    if n == 0,
+      do: 0,
+      else:
+        from(s in subquery(query_top_n_entity_by_order_revenue(m, n)),
+          select: sum(s.revenue)
+        )
+        |> Repo.one()
+  end
+
+  def query_top_n_entity_by_order_revenue(m, n \\ 5)
+      when m in @m_tables and is_integer(n) and n >= 0 do
+    from(s in subquery(query_entity_by_order_revenue(m)), order_by: [desc: s.revenue], limit: ^n)
   end
 
   def calculate_chunk_area({{x1, y1}, {x2, y2}}) do
