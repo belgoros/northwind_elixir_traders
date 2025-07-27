@@ -10,7 +10,8 @@ defmodule NorthwindElixirTraders.Insights do
     Supplier,
     Product,
     OrderDetail,
-    Order
+    Order,
+    Joins
   }
 
   @max_concurrency 2
@@ -18,51 +19,76 @@ defmodule NorthwindElixirTraders.Insights do
   @tables [Customer, Employee, Shipper, Category, Supplier, Product, OrderDetail, Order]
   @m_tables @tables -- [Order, OrderDetail]
 
-  def query_entity_by_product_quantity(m) when m == Product do
-    from(x in m,
-      join: od in assoc(x, :order_details),
-      group_by: x.id,
-      select: %{id: x.id, name: x.name, quantity: sum(od.quantity)}
+  def query_entity_by_product_quantity(m), do: Joins.p_od_group_and_select(m)
+
+  def query_entity_record_totals(m), do: Joins.p_od_group_and_select(m)
+
+  def query_top_n_entity_by(m, field, n \\ 5)
+      when is_integer(n) and n >= 0 and field in [:quantity, :revenue] do
+    from(s in subquery(query_entity_record_totals(m)),
+      order_by: [desc: field(s, ^field)],
+      limit: ^n
     )
   end
 
-  def query_entity_by_product_quantity(m) when m in [Supplier, Category] do
-    from(x in m,
-      join: p in assoc(x, :products),
-      join: od in assoc(p, :order_details),
-      group_by: x.id,
-      select: %{id: x.id, name: x.name, quantity: sum(od.quantity)}
-    )
+  def query_top_n_customers_by_order_revenue(n \\ 5),
+    do: query_top_n_entity_by_order_revenue(Customer, n)
+
+  def query_top_n_entity_by_order_revenue(m, n \\ 5), do: query_top_n_entity_by(m, :revenue, n)
+
+  def calculate_top_n_customers_by_order_value(n \\ 5),
+    do: calculate_top_n_entity_by_order_value(Customer, n)
+
+  def calculate_top_n_entity_by_order_value(m, n \\ 5),
+    do: calculate_top_n_entity_by(m, :revenue, n)
+
+  def calculate_top_n_entity_by(m, field, n \\ 5) do
+    if n == 0,
+      do: 0,
+      else:
+        from(s in subquery(query_top_n_entity_by(m, field, n)), select: sum(field(s, ^field)))
+        |> Repo.one()
   end
 
-  def query_entity_by_product_quantity(m) when m in @m_tables do
-    query =
-      from(x in m,
-        join: o in assoc(x, :orders),
-        join: od in assoc(o, :order_details),
-        join: p in assoc(od, :product),
-        group_by: x.id,
-        select: %{id: x.id, revenue: sum(od.quantity)}
+  def generate_customer_share_of_revenues_xy, do: generate_entity_share_of_revenues_xy(Customer)
+  def generate_entity_share_of_revenues_xy(m), do: generate_entity_share_of_xy(m, :revenue)
+
+  def generate_entity_share_of_xy(m, field) do
+    0..count_entity_orders(m, :with)
+    |> Task.async_stream(&{&1, calculate_top_n_entity_by(m, field, &1)})
+    |> Enum.to_list()
+    |> extract_task_results()
+    |> normalize_xy()
+  end
+
+  def gini(m, field), do: generate_entity_share_of_xy(m, field) |> calculate_gini_coeff()
+
+  def calculate_relative_revenue_share_of_entity_rows(m),
+    do: calculate_relative_share_of_entity_rows(m, :revenue)
+
+  def calculate_relative_share_of_entity_rows(m, field) do
+    data =
+      from(s in subquery(query_entity_record_totals(m)),
+        order_by: [desc: field(s, ^field)]
       )
+      |> Repo.all()
 
-    if m == Employee do
-      select_merge(query, [x, o, od, p], %{
-        name: fragment("? || ' ' || ?", x.last_name, x.first_name)
-      })
-    else
-      select_merge(query, [x, o, od, p], %{name: x.name})
-    end
+    total = Enum.sum_by(data, &Map.get(&1, field))
+    Enum.map(data, fn x -> %{id: x.id, name: x.name, share: x[field] / total} end)
   end
 
-  def revenue_share_total_trivial_many(m, q \\ 0.8) do
-    calculate_relative_revenue_share_of_entity_rows(m)
+  def revenue_share_total_trivial_many(m, q \\ 0.8), do: share_total_trivial_many(m, :revenue, q)
+
+  def share_total_trivial_many(m, field, q \\ 0.8) do
+    calculate_relative_share_of_entity_rows(m, field)
     |> Enum.reverse()
     |> helper_vital_trivial(m, q)
   end
 
-  def revenue_share_total_vital_few(m, q \\ 0.2) do
-    calculate_relative_revenue_share_of_entity_rows(m) |> helper_vital_trivial(m, q)
-  end
+  def revenue_share_total_vital_few(m, q \\ 0.2), do: share_total_vital_few(m, :revenue, q)
+
+  def share_total_vital_few(m, field, q \\ 0.2),
+    do: calculate_relative_share_of_entity_rows(m, field) |> helper_vital_trivial(m, q)
 
   def helper_vital_trivial(data, m, q)
       when is_list(data) and m in @m_tables and is_number(q) and q > 0 and q <= 1 do
@@ -116,24 +142,6 @@ defmodule NorthwindElixirTraders.Insights do
     )
   end
 
-  def query_top_n_customers_by_order_revenue(n \\ 5) do
-    from(s in subquery(query_customers_by_order_revenue()),
-      order_by: [desc: s.revenue],
-      limit: ^n
-    )
-  end
-
-  def calculate_top_n_customers_by_order_value(n \\ 5) when is_integer(n) and n >= 0 do
-    if n == 0 do
-      0.0
-    else
-      from(s in subquery(query_top_n_customers_by_order_revenue(n)),
-        select: sum(s.revenue)
-      )
-      |> Repo.one()
-    end
-  end
-
   def count_customers_with_revenues do
     from(s in subquery(query_customers_by_order_revenue()),
       where: s.revenue > 0,
@@ -152,40 +160,12 @@ defmodule NorthwindElixirTraders.Insights do
     |> normalize_xy()
   end
 
-  def calculate_top_n_entity_by_order_value(m, n \\ 5)
-      when m in @m_tables and is_integer(n) and n >= 0 do
-    if n == 0,
-      do: 0,
-      else:
-        from(s in subquery(query_top_n_entity_by_order_revenue(m, n)),
-          select: sum(s.revenue)
-        )
-        |> Repo.one()
-  end
-
-  def query_top_n_entity_by_order_revenue(m, n \\ 5)
-      when m in @m_tables and is_integer(n) and n >= 0 do
-    from(s in subquery(query_entity_by_order_revenue(m)), order_by: [desc: s.revenue], limit: ^n)
-  end
-
   def calculate_gini_coeff(xyl) when is_list(xyl) do
     xyl
     |> then(&Enum.zip(&1, tl(&1)))
     |> Enum.reduce(0.0, fn c, acc -> acc + calculate_chunk_area(c) end)
     |> Kernel.-(0.5)
     |> Kernel.*(2)
-  end
-
-  def generate_entity_share_of_revenues_xy(m) when m in @m_tables do
-    0..count_entity_orders(m, :with)
-    |> Task.async_stream(&{&1, calculate_top_n_entity_by_order_value(m, &1)})
-    |> Enum.to_list()
-    |> extract_task_results()
-    |> normalize_xy()
-  end
-
-  def gini(m) when m in @m_tables do
-    m |> generate_entity_share_of_revenues_xy() |> calculate_gini_coeff()
   end
 
   def calculate_chunk_area({{x1, y1}, {x2, y2}}) do
@@ -200,57 +180,9 @@ defmodule NorthwindElixirTraders.Insights do
     |> Repo.all()
   end
 
-  def calculate_relative_revenue_share_of_entity_rows(m) do
-    data =
-      from(s in subquery(query_entity_by_order_revenue(m)),
-        order_by: [desc: s.revenue]
-      )
-      |> Repo.all()
-
-    total = Enum.sum_by(data, & &1.revenue)
-
-    Enum.map(data, fn %{revenue: r} = x ->
-      %{id: x.id, name: x.name, share: Float.round(r / total, 3)}
-    end)
-  end
-
   def query_customers_by_order_revenue, do: query_entity_by_order_revenue(Customer)
 
-  def query_entity_by_order_revenue(m) when m in [Supplier, Category] do
-    from(x in m,
-      join: p in assoc(x, :products),
-      join: od in assoc(p, :order_details),
-      group_by: x.id,
-      select: %{id: x.id, name: x.name, revenue: sum(od.quantity * p.price)}
-    )
-  end
-
-  def query_entity_by_order_revenue(m) when m == Product do
-    from(x in m,
-      join: od in assoc(x, :order_details),
-      group_by: x.id,
-      select: %{id: x.id, name: x.name, revenue: sum(od.quantity * x.price)}
-    )
-  end
-
-  def query_entity_by_order_revenue(m) when m in @m_tables do
-    query =
-      from(x in m,
-        join: o in assoc(x, :orders),
-        join: od in assoc(o, :order_details),
-        join: p in assoc(od, :product),
-        group_by: x.id,
-        select: %{id: x.id, revenue: sum(od.quantity * p.price)}
-      )
-
-    if m == Employee do
-      select_merge(query, [x, o, od, p], %{
-        name: fragment("? || ' ' || ?", x.last_name, x.first_name)
-      })
-    else
-      select_merge(query, [x, o, od, p], %{name: x.name})
-    end
-  end
+  def query_entity_by_order_revenue(m), do: Joins.p_od_group_and_select(m)
 
   def query_order_details_by_order(order_id) do
     OrderDetail
