@@ -18,6 +18,22 @@ defmodule NorthwindElixirTraders.Insights do
   @tables [Customer, Employee, Shipper, Category, Supplier, Product, OrderDetail, Order]
   @m_tables @tables -- [Order, OrderDetail]
 
+  def revenue_share_total_trivial_many(m, q \\ 0.8) do
+    calculate_relative_revenue_share_of_entity_rows(m)
+    |> Enum.reverse()
+    |> helper_vital_trivial(m, q)
+  end
+
+  def revenue_share_total_vital_few(m, q \\ 0.2) do
+    calculate_relative_revenue_share_of_entity_rows(m) |> helper_vital_trivial(m, q)
+  end
+
+  def helper_vital_trivial(data, m, q)
+      when is_list(data) and m in @m_tables and is_number(q) and q > 0 and q <= 1 do
+    n = m |> count_entity_orders() |> Kernel.*(q) |> round()
+    data |> Enum.take(n) |> Enum.sum_by(& &1.share)
+  end
+
   def count_entity_orders(m, condition \\ :with)
       when m in @m_tables and condition in [:with, :without] do
     count_with =
