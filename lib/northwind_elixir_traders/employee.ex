@@ -11,8 +11,13 @@ defmodule NorthwindElixirTraders.Employee do
     field(:birth_date, :date)
     field(:photo, :string)
     field(:notes, :string)
+    field(:name, :string, virtual: true)
 
     timestamps(type: :utc_datetime)
+  end
+
+  def populate_name(%__MODULE__{first_name: first, last_name: last} = e) do
+    %{e | name: last <> " " <> first}
   end
 
   def import_changeset(data, params \\ %{}) do
