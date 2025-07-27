@@ -18,6 +18,42 @@ defmodule NorthwindElixirTraders.Insights do
   @tables [Customer, Employee, Shipper, Category, Supplier, Product, OrderDetail, Order]
   @m_tables @tables -- [Order, OrderDetail]
 
+  def query_entity_by_product_quantity(m) when m == Product do
+    from(x in m,
+      join: od in assoc(x, :order_details),
+      group_by: x.id,
+      select: %{id: x.id, name: x.name, quantity: sum(od.quantity)}
+    )
+  end
+
+  def query_entity_by_product_quantity(m) when m in [Supplier, Category] do
+    from(x in m,
+      join: p in assoc(x, :products),
+      join: od in assoc(p, :order_details),
+      group_by: x.id,
+      select: %{id: x.id, name: x.name, quantity: sum(od.quantity)}
+    )
+  end
+
+  def query_entity_by_product_quantity(m) when m in @m_tables do
+    query =
+      from(x in m,
+        join: o in assoc(x, :orders),
+        join: od in assoc(o, :order_details),
+        join: p in assoc(od, :product),
+        group_by: x.id,
+        select: %{id: x.id, revenue: sum(od.quantity)}
+      )
+
+    if m == Employee do
+      select_merge(query, [x, o, od, p], %{
+        name: fragment("? || ' ' || ?", x.last_name, x.first_name)
+      })
+    else
+      select_merge(query, [x, o, od, p], %{name: x.name})
+    end
+  end
+
   def revenue_share_total_trivial_many(m, q \\ 0.8) do
     calculate_relative_revenue_share_of_entity_rows(m)
     |> Enum.reverse()
