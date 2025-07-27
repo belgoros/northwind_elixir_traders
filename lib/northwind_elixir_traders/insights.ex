@@ -116,6 +116,14 @@ defmodule NorthwindElixirTraders.Insights do
     from(s in subquery(query_entity_by_order_revenue(m)), order_by: [desc: s.revenue], limit: ^n)
   end
 
+  def calculate_gini_coeff(xyl) when is_list(xyl) do
+    xyl
+    |> then(&Enum.zip(&1, tl(&1)))
+    |> Enum.reduce(0.0, fn c, acc -> acc + calculate_chunk_area(c) end)
+    |> Kernel.-(0.5)
+    |> Kernel.*(2)
+  end
+
   def calculate_chunk_area({{x1, y1}, {x2, y2}}) do
     {w, h} = {x2 - x1, y2 - y1}
     w * h * 0.5 + y1 * w
