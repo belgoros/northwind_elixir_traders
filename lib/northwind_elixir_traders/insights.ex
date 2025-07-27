@@ -19,6 +19,12 @@ defmodule NorthwindElixirTraders.Insights do
   @tables [Customer, Employee, Shipper, Category, Supplier, Product, OrderDetail, Order]
   @m_tables @tables -- [Order, OrderDetail]
 
+  def to_utc_datetime!(iso_date = %Date{}, :start),
+    do: DateTime.new!(iso_date, ~T[00:00:00], "Etc/UTC")
+
+  def to_utc_datetime!(iso_date = %Date{}, :end),
+    do: DateTime.new!(iso_date, ~T[23:59:59], "Etc/UTC")
+
   def query_entity_by_product_quantity(m), do: Joins.p_od_group_and_select(m)
 
   def query_entity_record_totals(m), do: Joins.p_od_group_and_select(m)
