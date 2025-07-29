@@ -19,6 +19,33 @@ defmodule NorthwindElixirTraders.Insights do
   @tables [Customer, Employee, Shipper, Category, Supplier, Product, OrderDetail, Order]
   @m_tables @tables -- [Order, OrderDetail]
 
+  def timespan_number_of_months({y_mn, m_mn} = _ym_mn, {y_mx, m_mx} = _ym_mx)
+      when is_integer(y_mn) and is_integer(y_mx) and y_mx >= y_mn and
+             m_mn in 1..12 and m_mx in 1..12 do
+    (y_mx - y_mn) * 12 + m_mx - m_mn + 1
+  end
+
+  def timespan_earliest_latest({y_mn, m_mn} = _ym_mn, {y_mx, m_mx} = _ym_mx)
+      when is_integer(y_mn) and is_integer(y_mx) and y_mx >= y_mn and
+             m_mn in 1..12 and m_mx in 1..12 do
+    [earliest, latest] =
+      from(o in Order, select: [min(o.date), max(o.date)])
+      |> Repo.one()
+      |> Enum.map(&DateTime.to_date/1)
+
+    mn =
+      if Date.before?(earliest, %Date{year: y_mn, month: m_mn, day: 1}),
+        do: {y_mn, m_mn},
+        else: {earliest.year, earliest.month}
+
+    mx =
+      if Date.after?(%Date{year: y_mx, month: m_mx, day: 1}, latest),
+        do: {latest.year, latest.month},
+        else: {y_mx, m_mx}
+
+    {mn, mx}
+  end
+
   def to_utc_datetime!(iso_date = %Date{}, :start),
     do: DateTime.new!(iso_date, ~T[00:00:00], "Etc/UTC")
 
