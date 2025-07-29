@@ -1,17 +1,19 @@
 defmodule NorthwindElixirTraders.Shipper do
   use Ecto.Schema
   import Ecto.Changeset
-  alias NorthwindElixirTraders.PhoneNumbers
+  alias NorthwindElixirTraders.{Order, PhoneNumbers}
 
   @name_mxlen 50
 
   schema "shippers" do
     field(:name, :string)
     field(:phone, :string)
+    has_many(:orders, Order, on_replace: :nilify)
+
     timestamps(type: :utc_datetime)
   end
 
-  def changeset(shipper, params \\ %{}) do
+  def import_changeset(shipper, params \\ %{}) do
     permitted = [:id, :name, :phone]
     required = permitted |> List.delete(:id)
 

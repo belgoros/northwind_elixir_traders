@@ -1,7 +1,7 @@
 defmodule NorthwindElixirTraders.Customer do
   use Ecto.Schema
   import Ecto.Changeset
-  # alias NorthwindElixirTraders.Order
+  alias NorthwindElixirTraders.Order
 
   @name_mxlen 50
 
@@ -12,14 +12,14 @@ defmodule NorthwindElixirTraders.Customer do
     field(:city, :string)
     field(:postal_code, :string)
     field(:country, :string)
-    # has_many(:orders, Order)
+    has_many(:orders, Order)
 
     timestamps(type: :utc_datetime)
   end
 
-  def changeset(data, params \\ %{}) do
+  def import_changeset(data, params \\ %{}) do
     permitted = [:id, :name, :contact_name, :address, :city, :postal_code, :country]
-    required = permitted -- [:id, :postal_code]
+    required = permitted |> List.delete(:postal_code)
 
     data
     |> cast(params, permitted)

@@ -11,5 +11,7 @@ alias NorthwindElixirTraders.Country
 alias NorthwindElixirTraders.Order
 alias NorthwindElixirTraders.OrderDetail
 alias NorthwindElixirTraders.DataImporter
+alias NorthwindElixirTraders.Insights
+alias NorthwindElixirTraders.Joins
 
 import Ecto.Query

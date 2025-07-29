@@ -1,7 +1,7 @@
 defmodule NorthwindElixirTraders.Employee do
   use Ecto.Schema
   import Ecto.Changeset
-  alias NorthwindElixirTraders.Validations
+  alias NorthwindElixirTraders.{Order, Validations}
 
   @name_mxlen 50
   @notes_mxlen 500
@@ -11,11 +11,17 @@ defmodule NorthwindElixirTraders.Employee do
     field(:birth_date, :date)
     field(:photo, :string)
     field(:notes, :string)
+    field(:name, :string, virtual: true)
+    has_many(:orders, Order, on_replace: :nilify)
 
     timestamps(type: :utc_datetime)
   end
 
-  def changeset(data, params \\ %{}) do
+  def populate_name(%__MODULE__{first_name: first, last_name: last} = e) do
+    %{e | name: last <> " " <> first}
+  end
+
+  def import_changeset(data, params \\ %{}) do
     permitted = [:id, :last_name, :first_name, :birth_date, :photo, :notes]
     required = [:last_name, :first_name, :birth_date]
 

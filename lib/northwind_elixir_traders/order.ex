@@ -1,7 +1,7 @@
 defmodule NorthwindElixirTraders.Order do
   use Ecto.Schema
   import Ecto.Changeset
-  alias NorthwindElixirTraders.{Customer, Employee, Shipper, Validations, OrderDetail, Product}
+  alias NorthwindElixirTraders.{Customer, Employee, Shipper, Validations, OrderDetail}
 
   schema "orders" do
     field(:date, :utc_datetime)
@@ -9,12 +9,12 @@ defmodule NorthwindElixirTraders.Order do
     belongs_to(:employee, Employee)
     belongs_to(:shipper, Shipper)
     has_many(:order_details, OrderDetail)
-    many_to_many(:products, Product, join_through: OrderDetail)
 
+    has_many(:products, through: [:order_details, :product])
     timestamps(type: :utc_datetime)
   end
 
-  def changeset(data, params \\ %{}) do
+  def import_changeset(data, params \\ %{}) do
     permitted = [:id, :date, :customer_id, :employee_id, :shipper_id]
     required = permitted |> List.delete(:id)
 
