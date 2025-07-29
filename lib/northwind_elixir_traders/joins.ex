@@ -41,7 +41,12 @@ defmodule NorthwindElixirTraders.Joins do
     |> join(:inner, [od: od], p in assoc(od, :product), as: :p)
   end
 
-  def to_p_od_and_group(m), do: entity_to_p_od(m) |> group_by([x: x], x.id)
+  def to_p_od_and_group(m), do: to_p_od_and_group(m, :id)
+
+  def to_p_od_and_group(m, field) when is_atom(field) do
+    d_field = dynamic([x: x], field(x, ^field))
+    entity_to_p_od(m) |> group_by(^d_field)
+  end
 
   def p_od_group_and_select(m) when m == Product do
     to_p_od_and_group(m)
@@ -76,6 +81,16 @@ defmodule NorthwindElixirTraders.Joins do
   def p_od_group_and_select(m, opts) when is_list(opts),
     do: p_od_group_and_select(m) |> Insights.filter_by_date(opts)
 
+  def p_od_group_and_select(m, field) when m == Customer and field == :country do
+    to_p_od_and_group(m, field)
+    |> select([x: x, od: od, p: p], %{
+      id: x.id,
+      country: x.country,
+      quantity: sum(od.quantity),
+      revenue: sum(p.price * od.quantity)
+    })
+  end
+
   def rhs_merge_name(%Ecto.Query{} = query, m) when m == Employee do
     select_merge(query, [x: x], %{
       name: fragment("? || ' ' || ?", x.last_name, x.first_name)
@@ -85,4 +100,8 @@ defmodule NorthwindElixirTraders.Joins do
   def rhs_merge_name(%Ecto.Query{} = query, m) when m in @rhs do
     select_merge(query, [x: x], %{name: x.name})
   end
+
+  def p_od_group_and_select(m, field, opts)
+      when is_list(opts) and m == Customer and field == :country,
+      do: p_od_group_and_select(m, field) |> Insights.filter_by_date(opts)
 end
