@@ -46,6 +46,29 @@ defmodule NorthwindElixirTraders.Insights do
     {mn, mx}
   end
 
+  def timespan_ym_to_opts_list({y_mn, m_mn} = _ym_mn, {y_mx, m_mx} = _ym_mx)
+      when is_integer(y_mn) and
+             is_integer(y_mx) and
+             y_mx >= y_mn and
+             m_mn in 1..12 and m_mx in 1..12 do
+    {{y_early, m_early}, {y_late, m_late}} = timespan_earliest_latest({y_mn, m_mn}, {y_mx, m_mx})
+    n_months = timespan_number_of_months({y_mn, m_mn}, {y_mx, m_mx})
+
+    Enum.reduce_while(
+      1..n_months,
+      [ym_to_dates(y_early, m_early)],
+      fn _, acc ->
+        prev = hd(acc)
+        next = Date.add(prev[:end], 1)
+
+        if {next.year, next.month} <= {y_late, m_late},
+          do: {:cont, [ym_to_dates(next.year, next.month) | acc]},
+          else: {:halt, acc}
+      end
+    )
+    |> Enum.reverse()
+  end
+
   def to_utc_datetime!(iso_date = %Date{}, :start),
     do: DateTime.new!(iso_date, ~T[00:00:00], "Etc/UTC")
 
