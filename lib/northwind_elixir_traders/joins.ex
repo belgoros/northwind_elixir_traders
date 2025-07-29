@@ -9,7 +9,8 @@ defmodule NorthwindElixirTraders.Joins do
     Order,
     Employee,
     Shipper,
-    Customer
+    Customer,
+    Insights
   }
 
   @tables [Supplier, Category, Product, OrderDetail, Order, Employee, Shipper, Customer]
@@ -71,6 +72,9 @@ defmodule NorthwindElixirTraders.Joins do
     })
     |> rhs_merge_name(m)
   end
+
+  def p_od_group_and_select(m, opts) when is_list(opts),
+    do: p_od_group_and_select(m) |> Insights.filter_by_date(opts)
 
   def rhs_merge_name(%Ecto.Query{} = query, m) when m == Employee do
     select_merge(query, [x: x], %{
