@@ -25,9 +25,67 @@ defmodule NorthwindElixirTraders.Insights do
   def to_utc_datetime!(iso_date = %Date{}, :end),
     do: DateTime.new!(iso_date, ~T[23:59:59], "Etc/UTC")
 
-  def filter_by_date(query = %Ecto.Query{}, opts, field \\ :date)
-      when opts === [] and field in [:date, :birth_date],
+  def filter_by_date(query, opts \\ [field: :date])
+
+  def filter_by_date(query = %Ecto.Query{}, opts)
+      when opts in [[field: :date], [field: :birth_date]],
       do: query
+
+  def filter_by_date(query = %Ecto.Query{}, start: d = %Date{}, field: field)
+      when field in [:date, :birth_date] do
+    d = if field == :date, do: to_utc_datetime!(d, :start), else: d
+
+    w =
+      case field do
+        :date ->
+          if has_named_binding?(query, :o),
+            do: dynamic([o: o], field(o, ^field) >= ^d),
+            else: dynamic([s], field(s, ^field) >= ^d)
+
+        :birth_date ->
+          dynamic([x: x], field(x, ^field) >= ^d)
+      end
+
+    where(query, ^w)
+  end
+
+  def filter_by_date(query = %Ecto.Query{}, end: d = %Date{}, field: field)
+      when field in [:date, :birth_date] do
+    d = if field == :date, do: to_utc_datetime!(d, :end), else: d
+
+    w =
+      case field do
+        :date ->
+          if has_named_binding?(query, :o),
+            do: dynamic([o: o], field(o, ^field) <= ^d),
+            else: dynamic([s], field(s, ^field) <= ^d)
+
+        :birth_date ->
+          dynamic([x: x], field(x, ^field) <= ^d)
+      end
+
+    where(query, ^w)
+  end
+
+  def filter_by_date(query = %Ecto.Query{}, year: y, month: m, field: field),
+    do: filter_by_date(query, ym_to_dates(y, m) ++ [field: field])
+
+  def filter_by_date(query = %Ecto.Query{}, year: y, field: field),
+    do: filter_by_date(query, ym_to_dates(y) ++ [field: field])
+
+  def filter_by_date(query = %Ecto.Query{}, start: s = %Date{}, end: e = %Date{}, field: field)
+      when field in [:date, :birth_date] do
+    query |> filter_by_date(start: s, field: field) |> filter_by_date(end: e, field: field)
+  end
+
+  def ym_to_dates(year) when is_integer(year) do
+    [start: %Date{year: year, month: 1, day: 1}, end: %Date{year: year, month: 12, day: 31}]
+  end
+
+  def ym_to_dates(year, month) when is_integer(year) and month in 1..12 do
+    s = %Date{year: year, month: month, day: 1}
+    [start: s, end: Date.end_of_month(s)]
+  end
 
   def query_entity_by_product_quantity(m), do: Joins.p_od_group_and_select(m)
 
